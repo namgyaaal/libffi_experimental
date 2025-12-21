@@ -2,8 +2,8 @@
 ⎕IO ← 0
 
 ⍝ In practice would be autogen'd based off of types
-⍝ Would look something like (u4 u2 u4 u2) WrapperFunction (u4 u2 u4 u2)
-∇ r←WrapperFunction a
+⍝ Would look something like (u4 u2 u4 u2) ManualFunction (u4 u2 u4 u2)
+∇ r←ManualFunction a
     FFIW_SetTarget ⍬
 
     FFIW_WriteU4 a[0]
@@ -21,6 +21,39 @@
     r ← a b c d
 ∇
 
+∇ build_fn (ret arg);v;compose;type
+    compose ←⊂ '∇ r←AutoFunction ns'
+    compose ← compose, ⊂'FFIW_SetTarget⍬'
+
+    :For v :in arg.⎕NL 2
+        type ← arg⎕VGET v
+        :If type≡'U2'
+            compose ← compose, ⊂'FFIW_WriteU2 ns⎕VGET⊂(,''',v,''') 0'
+        :Elseif type≡'U4'
+            compose ← compose, ⊂'FFIW_WriteU4 ns⎕VGET⊂(,''',v,''') 0'
+        :EndIf
+    :EndFor
+
+    compose ← compose, ⊂'FFIW_Call ⍬'
+    compose ← compose, ⊂'r←⎕NS⍬'
+
+    :For v :in ret.⎕NL 2
+        type ← ret⎕VGET v
+        :If type≡'U2'
+            compose ← compose, ⊂'r.', v, ' ← ⊃FFIW_ReadU2 ⍬'
+        :Elseif type≡'U4'
+            compose ← compose, ⊂'r.', v, ' ← ⊃FFIW_ReadU4 ⍬'
+        :EndIf
+    :EndFor
+    compose ← compose, ⊂'∇'
+    ⎕FX compose
+∇
+
+u2 ← 'U2'
+u4 ← 'U4'
+struct_type ← (a: u4 ⋄ b: u2 ⋄ c: u4 ⋄ d: u2)
+build_fn struct_type struct_type
+
 ⎕NA './target/release/libeasy_na.dylib|FFIW_Init' 
 ⎕NA './target/release/libeasy_na.dylib|FFIW_SetTarget'
 ⎕NA './target/release/libeasy_na.dylib|FFIW_WriteU2 U2'
@@ -31,5 +64,24 @@
 
 
 FFIW_Init ⍬
-⎕ ← 'Should be true: ', (3 4 1 2) ≡ WrapperFunction (1 2 3 4)
-⎕ ← 'Should be true: ', (30 40 10 20) ≡ WrapperFunction (10 20 30 40)
+⍝ Handwritten function
+⍝⎕ ← 'Should be true: ', (3 4 1 2) ≡ ManualFunction (1 2 3 4)
+⍝⎕ ← 'Should be true: ', (30 40 10 20) ≡ ManualFunction (10 20 30 40)
+
+
+⎕ ← 'Should Be true: '
+
+return_struct ← AutoFunction (a: 10 ⋄ b: 20 ⋄ c: 30 ⋄ d: 40)
+res ← (30 40 10 20)≡ return_struct⎕VGET ,¨ 'abcd'
+⎕ ← 'Should be true: ', res
+
+
+return_struct ← AutoFunction (a: 10 ⋄ c: 30 ⋄ d: 40)
+res ← (30 40 10 0)≡ return_struct⎕VGET ,¨ 'abcd'
+⎕ ← 'Should be true: ', res
+
+return_struct ← AutoFunction ⎕NS⍬
+res ← (0 0 0 0)≡ return_struct⎕VGET ,¨ 'abcd'
+⎕ ← 'Should be true: ', res
+
+
