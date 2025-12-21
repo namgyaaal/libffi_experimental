@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.21)
+project(TestLib LANGUAGES C)
+
+set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/libs")
+
+FILE(GLOB SOURCES TestLib/src/*.c)
+
+add_library(TESTLIB SHARED ${SOURCES})
+set_target_properties(TESTLIB PROPERTIES LINKER_LANGUAGE C)
+
+install(
+    TARGETS TESTLIB 
+    LIBRARY DESTINATION .
+)

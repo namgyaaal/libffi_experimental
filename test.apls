@@ -1,0 +1,35 @@
+#!/usr/local/bin/dyalogscript
+⎕IO ← 0
+
+⍝ In practice would be autogen'd based off of types
+⍝ Would look something like (u4 u2 u4 u2) WrapperFunction (u4 u2 u4 u2)
+∇ r←WrapperFunction a
+    FFIW_SetTarget ⍬
+
+    FFIW_WriteU4 a[0]
+    FFIW_WriteU2 a[1]
+    FFIW_WriteU4 a[2]
+    FFIW_WriteU2 a[3]
+
+    FFIW_Call ⍬
+
+    a ← ⊃FFIW_ReadU4 ⍬ 
+    b ← ⊃FFIW_ReadU2 ⍬
+    c ← ⊃FFIW_ReadU4 ⍬
+    d ← ⊃FFIW_ReadU2 ⍬
+
+    r ← a b c d
+∇
+
+⎕NA './target/release/libeasy_na.dylib|FFIW_Init' 
+⎕NA './target/release/libeasy_na.dylib|FFIW_SetTarget'
+⎕NA './target/release/libeasy_na.dylib|FFIW_WriteU2 U2'
+⎕NA './target/release/libeasy_na.dylib|FFIW_WriteU4 U4'
+⎕NA 'U2 ./target/release/libeasy_na.dylib|FFIW_ReadU2'
+⎕NA 'U4 ./target/release/libeasy_na.dylib|FFIW_ReadU4'
+⎕NA './target/release/libeasy_na.dylib|FFIW_Call'
+
+
+FFIW_Init ⍬
+⎕ ← 'Should be true: ', (3 4 1 2) ≡ WrapperFunction (1 2 3 4)
+⎕ ← 'Should be true: ', (30 40 10 20) ≡ WrapperFunction (10 20 30 40)
