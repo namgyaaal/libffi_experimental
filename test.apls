@@ -21,28 +21,26 @@
     r ← a b c d
 ∇
 
-∇ build_fn (ret arg);v;compose;type
+∇ build_fn (ret arg);name;compose;type
     compose ←⊂ '∇ r←AutoFunction ns'
     compose ← compose, ⊂'FFIW_SetTarget⍬'
 
-    :For v :in arg.⎕NL 2
-        type ← arg⎕VGET v
+    :For (name type) :in ↓arg
         :If type≡'U2'
-            compose ← compose, ⊂'FFIW_WriteU2 ns⎕VGET⊂(,''',v,''') 0'
+            compose ← compose, ⊂'FFIW_WriteU2 ns⎕VGET⊂(,''',name,''') 0'
         :Elseif type≡'U4'
-            compose ← compose, ⊂'FFIW_WriteU4 ns⎕VGET⊂(,''',v,''') 0'
+            compose ← compose, ⊂'FFIW_WriteU4 ns⎕VGET⊂(,''',name,''') 0'
         :EndIf
     :EndFor
 
     compose ← compose, ⊂'FFIW_Call ⍬'
     compose ← compose, ⊂'r←⎕NS⍬'
 
-    :For v :in ret.⎕NL 2
-        type ← ret⎕VGET v
+    :For (name type) :in ↓ret
         :If type≡'U2'
-            compose ← compose, ⊂'r.', v, ' ← ⊃FFIW_ReadU2 ⍬'
+            compose ← compose, ⊂'r.', name, ' ← ⊃FFIW_ReadU2 ⍬'
         :Elseif type≡'U4'
-            compose ← compose, ⊂'r.', v, ' ← ⊃FFIW_ReadU4 ⍬'
+            compose ← compose, ⊂'r.', name, ' ← ⊃FFIW_ReadU4 ⍬'
         :EndIf
     :EndFor
     compose ← compose, ⊂'∇'
@@ -51,7 +49,7 @@
 
 u2 ← 'U2'
 u4 ← 'U4'
-struct_type ← (a: u4 ⋄ b: u2 ⋄ c: u4 ⋄ d: u2)
+struct_type ← ['a' u4 ⋄ 'b' u2 ⋄ 'c' u4 ⋄ 'd' u2]
 build_fn struct_type struct_type
 
 ⎕NA './target/release/libeasy_na.dylib|FFIW_Init' 
