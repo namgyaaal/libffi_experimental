@@ -47,39 +47,77 @@
     ⎕FX compose
 ∇
 
-u2 ← 'U2'
-u4 ← 'U4'
-struct_type ← ['a' u4 ⋄ 'b' u2 ⋄ 'c' u4 ⋄ 'd' u2]
-build_fn struct_type struct_type
+⍝u2 ← 'U2'
+⍝u4 ← 'U4'
+⍝struct_type ← ['a' u4 ⋄ 'b' u2 ⋄ 'c' u4 ⋄ 'd' u2]
+⍝build_fn struct_type struct_type
+
+void ← 0
+u8 ← 1 
+u16 ← 2 
+u32 ← 3 
+u64 ← 4
+
+
+
+
 
 ⎕NA './target/release/libeasy_na.dylib|FFIW_Init' 
-⎕NA './target/release/libeasy_na.dylib|FFIW_SetTarget'
+⎕NA 'I4 ./target/release/libeasy_na.dylib|FFIW_BuildStruct <U4[] U4'
+⎕NA 'I1 ./target/release/libeasy_na.dylib|FFIW_BuildFunction <0C1[] <U4[] U4 U4'
+⎕NA 'I4 ./target/release/libeasy_na.dylib|FFIW_SetTarget <0C1[]'
+⎕NA './target/release/libeasy_na.dylib|FFIW_Call'
 ⎕NA './target/release/libeasy_na.dylib|FFIW_WriteU2 U2'
 ⎕NA './target/release/libeasy_na.dylib|FFIW_WriteU4 U4'
 ⎕NA 'U2 ./target/release/libeasy_na.dylib|FFIW_ReadU2'
 ⎕NA 'U4 ./target/release/libeasy_na.dylib|FFIW_ReadU4'
-⎕NA './target/release/libeasy_na.dylib|FFIW_Call'
+
+test ← FFIW_BuildStruct (u32 u16 u32 u16) 4
+test2 ← FFIW_BuildStruct (test test) 2
+
+inner ← FFIW_BuildStruct (u32 u32) 2
+outer ← FFIW_BuildStruct (inner inner) 2
+big_outer ← FFIW_BuildStruct (outer u8 u8 outer) 4
 
 
-FFIW_Init ⍬
+⍝FFIW_BuildFunction 'fn_a' (u32) 1 void
+FFIW_BuildFunction 'fn_b' test 1 test
+⍝FFIW_BuildFunction 'fn_c' (outer outer) 2 void
+⍝FFIW_BuildFunction 'fn_d' (big_outer) 1 void
+
+⎕ ← FFIW_SetTarget ⊂'fn_b'
+FFIW_WriteU4 1
+FFIW_WriteU2 2
+FFIW_WriteU4 3
+FFIW_WriteU2 4
+FFIW_Call ⍬ 
+⎕ ← FFIW_ReadU4 ⍬
+⎕ ← FFIW_ReadU2 ⍬
+⎕ ← FFIW_ReadU4 ⍬
+⎕ ← FFIW_ReadU2 ⍬
+
+
+
+
+⍝FFIW_Init ⍬
 ⍝ Handwritten function
 ⍝⎕ ← 'Should be true: ', (3 4 1 2) ≡ ManualFunction (1 2 3 4)
 ⍝⎕ ← 'Should be true: ', (30 40 10 20) ≡ ManualFunction (10 20 30 40)
 
 
-⎕ ← 'Should Be true: '
+⍝⎕ ← 'Should Be true: '
 
-return_struct ← AutoFunction (a: 10 ⋄ b: 20 ⋄ c: 30 ⋄ d: 40)
-res ← (30 40 10 20)≡ return_struct⎕VGET ,¨ 'abcd'
-⎕ ← 'Should be true: ', res
+⍝return_struct ← AutoFunction (a: 10 ⋄ b: 20 ⋄ c: 30 ⋄ d: 40)
+⍝res ← (30 40 10 20)≡ return_struct⎕VGET ,¨ 'abcd'
+⍝⎕ ← 'Should be true: ', res
 
 
-return_struct ← AutoFunction (a: 10 ⋄ c: 30 ⋄ d: 40)
-res ← (30 40 10 0)≡ return_struct⎕VGET ,¨ 'abcd'
-⎕ ← 'Should be true: ', res
+⍝return_struct ← AutoFunction (a: 10 ⋄ c: 30 ⋄ d: 40)
+⍝res ← (30 40 10 0)≡ return_struct⎕VGET ,¨ 'abcd'
+⍝⎕ ← 'Should be true: ', res
 
-return_struct ← AutoFunction ⎕NS⍬
-res ← (0 0 0 0)≡ return_struct⎕VGET ,¨ 'abcd'
-⎕ ← 'Should be true: ', res
+⍝return_struct ← AutoFunction ⎕NS⍬
+⍝res ← (0 0 0 0)≡ return_struct⎕VGET ,¨ 'abcd'
+⍝⎕ ← 'Should be true: ', res
 
 
