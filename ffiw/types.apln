@@ -1,0 +1,15 @@
+:Namespace types
+    ⎕IO ← 0
+    ⍝ Order defined in lib.rs TYPE_TABLE
+    void ← 0
+    (u8 u16 u32 u64) ← 1+⍳4
+    (i8 i16 i32 i64) ← 5+⍳4
+    (f32 f64) ← 9+⍳2
+
+    type_table ← 2/⍪(u8 u16 u32 u64 i8 i16 i32 i64 f32 f64)
+    ∇ idx ← Build_Struct def;types
+        types ← 1⌷⍉def 
+        idx ← ##.ex.FFIW_BuildStruct (∊types) (≢types)
+        type_table ⍪← (idx, ⊂def)
+    ∇
+:EndNamespace

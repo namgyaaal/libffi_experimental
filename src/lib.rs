@@ -352,7 +352,7 @@ ffiw_write!(FFIW_WriteI8, FFIW_ReadI8, i64);
 ffiw_write!(FFIW_WriteF4, FFIW_ReadF4, f32);
 ffiw_write!(FFIW_WriteF8, FFIW_ReadF8, f64);
 
-ffiw_write!(FFIW_WritePtr, FFIW_ReadPtr, *mut c_void);
+ffiw_write!(FFIW_WriteP, FFIW_ReadP, *mut c_void);
 
 fn get_deep_struct_offsets(
     type_table: &MutexGuard<Vec<Type>>,
