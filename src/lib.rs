@@ -169,14 +169,16 @@ pub extern "C" fn FFIW_BuildFunction(
 
     let slice: &[u32] = unsafe { slice::from_raw_parts(arg_ptr, arg_cnt as usize) };
     let args: Vec<Type> = slice.iter().map(|x| type_table[*x as usize]).collect();
-    function_map.insert(
-        name,
+    if let Some(_) = function_map.insert(
+        name.clone(),
         Function {
             args: args,
             ret: type_table[ret_idx as usize],
             fn_: fn_addr,
         },
-    );
+    ) {
+        println!("Warning: {} is already loaded", name);
+    }
     return true;
 }
 

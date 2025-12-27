@@ -1,0 +1,26 @@
+∇ r←Build_Function(name def ret)
+  ⎕IO←0
+  names ←0⌷⍉def
+  ti    ←1⌷⍉def
+
+  build_fn ← {
+      ⍝ If it's above it's a struct, handle recursively?
+      ⍵>≢types.raw:0 ⍝ COVER SOON
+      ⊃⍺[⍵]
+  }
+
+  write_fns ← types.write_names∘build_fn¨ti
+  write_fns ← write_fns,¨' ns⎕VGET ⊂'''∘,¨{⍵,''' 0'}¨names
+
+  ⍝ Need to handle struct case
+  read_fn ← 'r ← ', types.read_names {⍵=0:0 ⋄ '⍬',⍨⊃⍺[⍵]} ret
+
+  compose←⍬
+  compose←compose,⊂({⍵=types.void: '∇' ⋄ '∇r←'}ret), name, ' ns'
+  compose←compose,⊂'FFIW_SetTarget⍬'
+  compose←compose,write_fns
+  compose←compose,⊂'FFIW_Call⍬'
+  compose←compose,⊂read_fn
+  compose←compose,'∇'
+  r←compose
+∇

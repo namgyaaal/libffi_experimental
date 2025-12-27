@@ -1,0 +1,5 @@
+∇ idx←Build_Struct def;ti
+    ti←(1+⎕IO)⌷⍉def
+    idx←ex.FFIW_BuildStruct(∊ti)(≢ti)
+    types.type_table⍪←(idx,⊂def)
+∇
