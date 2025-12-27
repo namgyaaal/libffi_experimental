@@ -6,17 +6,17 @@
     ''   'FFIW_Init'
     'I4' 'FFIW_BuildStruct <U4[] U4'
     'I1' 'FFIW_BuildFunction <0C1[] <U4[] U4 U4'
-    'I4' 'FFIW_SetTarget <0C1[]'
+    'I1' 'FFIW_SetTarget <0C1[]'
     ''   'FFIW_Call'
     ]
-
     raw_defs⍪← (⊂' ')∘,⍪##.types.write_names,¨' ',¨##.types.raw
     raw_defs⍪← ##.types.raw,⍪##.types.read_names
 
-    LoadDefs←{
-        def←∊(⊃0⌷⍵)' 'lib'|'(⊃1⌷⍵)
-        11::{⎕←'Error loading:',⍵}def
-        ⎕NA def
-    }
+      LoadDefs←{
+          ret ← {^/' '=⍵: ''⋄ ⍵,' '}(⊃0⌷⍵)
+          def←∊ret lib'|'(⊃1⌷⍵)
+          11::{⎕←'Error loading:',⍵}def
+          ⎕NA def
+      }
     LoadDefs¨↓raw_defs
 :EndNamespace

@@ -25,7 +25,9 @@ typedef struct Big_Outer {
     Outer b;
 } Big_Outer;
 
-void fn_a(uint32_t a) { printf("Test call: %d\n", a); }
+uint32_t fn_a(uint32_t a) { return a - 10; }
+
+uint32_t fn_add(uint32_t a, uint32_t b) { return a + b; }
 
 Struct_A fn_b(Struct_A a) {
     printf("Test Call: %d %d %d %d\n", a.a, a.b, a.c, a.d);
