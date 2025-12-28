@@ -27,6 +27,8 @@ typedef struct Big_Outer {
 
 uint32_t fn_a(uint32_t a) { return a - 10; }
 
+uint32_t fn_struct(Inner s) { return s.a + s.b; }
+
 uint32_t fn_add(uint32_t a, uint32_t b) { return a + b; }
 
 Struct_A fn_b(Struct_A a) {
