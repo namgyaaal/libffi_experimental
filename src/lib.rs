@@ -21,6 +21,24 @@ use libffi::{
 };
 use libloading::Library;
 
+/*
+Overview:
+
+Types are either:
+(i) Pointers into the ffi_types libffi provides you with (scalars)
+(i) Array indices into the struct table, since all other types are structs
+
+This library currently has a append-only (don't know how to restrict to this) type-table, struct-table, function hashmap and a target indicating current function as global state.
+
+When you start you build structs by passing arrays of indices into the type table which (i) adds the struct to the struct-table (ii) adds its type to the type-table (iii) and returns its index into the type-table. This allows for nesting structs easily.
+
+Functions, similarly, take an array of type-indices as argument and a type-index for return, alongside a name
+
+Calling is handled by the APL ffiw namespace but requires (i) doing SetTarget on a function, (ii) writing the arguments, (iii) calling the function and then (iv) reading the arguments out if it returns something
+
+Reading and writing happen per-scalar so that ffiw reads from namespaces or writes onto namespaces.
+*/
+
 type FnPtr = unsafe extern "C" fn();
 
 #[derive(Debug, Copy, Clone)]
@@ -35,8 +53,9 @@ struct StructType {
     type_: ffi_type,
     // Pointed to in type definition
     elements: Vec<*mut ffi_type>,
+    // ABI offsets generated when struct is made
     offsets: Vec<usize>,
-    // Kept for easy iteration
+    // Kept for easy iteration through types.
     children: Vec<Type>,
 }
 unsafe impl Send for StructType {}
@@ -51,10 +70,17 @@ unsafe impl Send for Function {}
 unsafe impl Sync for Function {}
 
 struct Target {
+    // Memory locations of each argument in the write_buffer
     arg_locations: Vec<usize>,
+    // Indicates where data should be written to when passing arguments
+    // Goes through write_locations
     write_idx: usize,
+    // Arguments share the same memory buffer here for sake of simplicity
     write_buf: Vec<u8>,
+    // Flat indices locations of all fields flattened from nested structs
     write_locations: Vec<usize>,
+    // Indicates where data should be read from when reading arguments (if struct)
+    // Goes through read_locations
     read_idx: usize,
     read_buf: Vec<u8>,
     read_locations: Vec<usize>,
@@ -63,6 +89,7 @@ struct Target {
 unsafe impl Send for Target {}
 unsafe impl Sync for Target {}
 
+// Need to make function to load library in the future that APL calls.
 static LIB: LazyLock<Mutex<Library>> = LazyLock::new(|| {
     Mutex::new(unsafe {
         Library::new("libs/libTESTLIB.dylib").expect("Couldn't find libTESTLIB.dylib")
@@ -87,6 +114,8 @@ static TYPE_TABLE: LazyLock<Mutex<Vec<Type>>> = LazyLock::new(|| {
         ]
     })
 });
+
+// Box<> because want the heap address to be constant since libffi types need to point to address
 static STRUCT_TABLE: LazyLock<Mutex<Vec<Box<StructType>>>> =
     LazyLock::new(|| Mutex::new(Vec::new()));
 
@@ -100,6 +129,11 @@ pub extern "C" fn FFIW_Init() {
     // Relevant for anything in the future
 }
 
+/*
+Given an array of indices corresponding to types in the type table, build a struct by adding its definition to the struct table and its type to the type table and return its index into the type table.
+
+Return -1 otherwise
+*/
 #[unsafe(no_mangle)]
 pub extern "C" fn FFIW_BuildStruct(ptr: *const u32, size: u32) -> i32 {
     let mut type_table = TYPE_TABLE.lock().unwrap();
@@ -117,9 +151,7 @@ pub extern "C" fn FFIW_BuildStruct(ptr: *const u32, size: u32) -> i32 {
         })
         .collect();
     struct_elements.push(ptr::null_mut());
-    /*
-        Type and offsets need to be generated after moving it into a place in memory it won't change from.
-    */
+    // Type and offsets need to be generated after moving it into a place in memory it won't change from.
     let mut struct_type = Box::new(StructType {
         type_: ffi_type::default(),
         elements: struct_elements,
@@ -133,6 +165,7 @@ pub extern "C" fn FFIW_BuildStruct(ptr: *const u32, size: u32) -> i32 {
         elements: struct_type.elements.as_mut_ptr(),
         ..Default::default()
     };
+    // Get offsets one and cache them
     unsafe {
         let status = ffi_get_struct_offsets(
             ffi_abi_FFI_DEFAULT_ABI,
@@ -152,6 +185,16 @@ pub extern "C" fn FFIW_BuildStruct(ptr: *const u32, size: u32) -> i32 {
     t_idx as i32
 }
 
+/*
+Given
+- a const char* corresponding to name
+- an array of indices corresponding to types in the type table as arguments
+- return index corresponding to type table
+
+Build a function and return if successful or not.
+
+Return -1 otherwise
+*/
 #[unsafe(no_mangle)]
 pub extern "C" fn FFIW_BuildFunction(
     name: *const c_char,
@@ -182,6 +225,12 @@ pub extern "C" fn FFIW_BuildFunction(
     return true;
 }
 
+/*
+Given a function name set that function as the target.
+
+Should be called before writing, calling the function or reading from it.
+Returns if successful
+*/
 #[unsafe(no_mangle)]
 pub extern "C" fn FFIW_SetTarget(name: *const c_char) -> bool {
     let type_table = TYPE_TABLE.lock().unwrap();
@@ -197,6 +246,8 @@ pub extern "C" fn FFIW_SetTarget(name: *const c_char) -> bool {
     let mut arg_buf: Vec<u8> = Vec::new();
     let mut write_locations: Vec<usize> = Vec::new();
 
+    // arguments share a contiguous block of memory so it doesn't get too complex
+    // find offsets for each and resize ir accordingly
     for arg in &fn_.args {
         let old_len = arg_buf.len();
         let offsets = get_deep_struct_offsets(&type_table, &struct_table, *arg);
@@ -215,7 +266,6 @@ pub extern "C" fn FFIW_SetTarget(name: *const c_char) -> bool {
         // Safe enough with 8-multiple of padding per argument.
         arg_buf.resize(old_len + type_size.next_multiple_of(8), 0);
     }
-
     let mut ret_buf: Vec<u8> = Vec::new();
     let type_size = match *&fn_.ret {
         Type::Value(x) => unsafe { x.as_ref().unwrap().size },
@@ -243,6 +293,9 @@ pub extern "C" fn FFIW_SetTarget(name: *const c_char) -> bool {
     return true;
 }
 
+/*
+   Call the function after SetTarget and data has been written
+*/
 #[unsafe(no_mangle)]
 pub extern "C" fn FFIW_Call() {
     let mut struct_table = STRUCT_TABLE.lock().unwrap();
@@ -356,6 +409,12 @@ ffiw_write!(FFIW_WriteF8, FFIW_ReadF8, f64);
 
 ffiw_write!(FFIW_WriteP, FFIW_ReadP, *mut c_void);
 
+/*
+    similar to ffi_get_struct_offsets but instead builds an array of offsets of arbitrary struct nesting.
+
+    Helpful from the APL side, as we just need to 'unroll' arguments in order and just write and read normally as if
+    they are all flat
+*/
 fn get_deep_struct_offsets(
     type_table: &MutexGuard<Vec<Type>>,
     struct_table: &MutexGuard<Vec<Box<StructType>>>,
@@ -374,6 +433,7 @@ fn get_deep_struct_offsets(
         else {
             continue;
         };
+        // Since first corresponds to where the array starts
         child_offsets.remove(0);
         child_offsets = child_offsets.iter().map(|x| offsets[i] + x).collect();
         child_collection.push((i, child_offsets));
