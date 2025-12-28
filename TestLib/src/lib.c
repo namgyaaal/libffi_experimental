@@ -8,6 +8,29 @@ typedef struct Struct_A {
     uint16_t d;
 } Struct_A;
 
+typedef struct Inner {
+    uint32_t a;
+    uint32_t b;
+} Inner;
+
+typedef struct Outer {
+    Inner a;
+    Inner b;
+} Outer;
+
+typedef struct Big_Outer {
+    Outer a;
+    uint8_t troll_a;
+    uint8_t troll_b;
+    Outer b;
+} Big_Outer;
+
+uint32_t fn_a(uint32_t a) { return a - 10; }
+
+uint32_t fn_struct(Inner s) { return s.a + s.b; }
+
+uint32_t fn_add(uint32_t a, uint32_t b) { return a + b; }
+
 Struct_A fn_b(Struct_A a) {
     printf("Test Call: %d %d %d %d\n", a.a, a.b, a.c, a.d);
     Struct_A out = {0};
@@ -18,3 +41,7 @@ Struct_A fn_b(Struct_A a) {
     out.d = a.b;
     return out;
 }
+
+void fn_c(Outer a, Outer b) {}
+
+void fn_d(Big_Outer d) { printf("fn_d test call\n"); }

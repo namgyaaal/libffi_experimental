@@ -1,0 +1,59 @@
+ r←Build_Function(name def ret)
+ ns←'##.ffiw.ex.'
+ ⎕IO←0
+ names←0⌷⍉def
+ ti←1⌷⍉def
+ _←ex.FFIW_BuildFunction name(ti)(≢ti)ret
+ ⍝ note ⍵-1 [12], ¯1+1⌷⍵ [30] due to first type being void
+ ⍝ we want to check for it but at same time ignore it when
+ ⍝  selecting from write_names/read_names
+ build_fn←{
+      ⍝ If it's above it's a struct, handle recursively?
+     ⍵>≢types.raw:0 ⍝ COVER SOON
+     ⊃⍺[⍵-1]
+ }
+ ⍝ Unroll definition in (⍺) recursive table form of
+ ⍝ N×2, where first column is names and second column is either
+ ⍝ (1) types
+ ⍝ (2) submatrix of (⍺)
+ unroll←{
+     ⍝ Handle char fields
+     (tn ti)←({⍵≡0:(,⍵) ⋄ ⍵}¨0⌷⍉⍵)(1⌷⍉⍵)
+     tbli←0⌷⍉types.type_table
+     tblv←1⌷⍉types.type_table
+     (≢ti)≠≢∊(⍸tbli=⊢)¨ti:{
+         ⎕←'Error: ',name,' using undefined types' ⋄ ⎕SIGNAL 8
+     }⍬
+     v←{0=≡⍵:⍵ ⋄ unroll ⍵}¨tblv[(⍸tbli=⊢)¨ti]
+     ⍉↑tn v
+ }
+ parse_unit←{
+     base ← types.write_names[¯1+1⌷⍵]
+     ⍝ dorito and colon as seperators when enlisting
+     ∊'∇',⍨base,':ns.',⊃0⌷⍵
+ }
+ roll_ns←{⍺←''
+     1=≡⍵: parse_unit⍤(⍺∘{⊂1↓⍺,'.',⊃⍵}@0)⍵
+     pr←⍺,'.',(⊃0⌷⍵)
+     pr∘∇¨↓⊃1⌷⍵
+ }
+ step ← unroll def
+ step ← ∊roll_ns¨↓step
+ write_fns← ':'∘(≠⊆⊢)¨'∇'(≠⊆⊢)step
+ write_fns← {'_ ← ##.ffiw.ex.', (⊃0⌷⍵), ' ', (⊃1⌷⍵)}¨write_fns
+
+
+ ⍝ Old one for referene
+ ⍝write_fns←types.write_names∘build_fn¨ti
+ ⍝write_fns←('_←',ns)∘,¨write_fns,¨' ns⎕VGET ⊂(,'''∘,¨{⍵,''') 0'}¨names
+
+ ⍝ Need to handle structs with return
+ read_fn←'r←',∊types.read_names{⍵=0:'0' ⋄ '⊃',ns,'⍬',⍨⊃⍺[⍵-1]}ret
+ compose←⍬
+ compose←compose,⊂(name{⍵=types.void:'∇',⍺,' ns;b;r' ⋄ '∇r←',⍺,' ns;b'}ret)
+ compose←compose,⊂'b←',ns,'FFIW_SetTarget ⊂''',name,''''
+ compose←compose,write_fns
+ compose←compose,⊂'_←',ns,'FFIW_Call⍬'
+ compose←compose,⊂read_fn
+ compose←compose,'∇'
+ r←compose
