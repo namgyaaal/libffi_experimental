@@ -32,17 +32,26 @@
  }
  ⍝ Merge as a string with ∇, : for enlisting and then splitting
  parse_unit←{
-     base←types.write_names[¯1+1⌷⍵]
+     ⍺ ← ('ns' types.write_names)
+     (ns fns) ← ⍺
+
+     base←fns[¯1+1⌷⍵]
      ⍝ dorito and colon as seperators when enlisting
-     ∊'∇',⍨base,':ns.',⊃0⌷⍵
+     ∊'∇',⍨base,':',ns,'.',⊃⍵
  }
- roll_ns←{⍺←''
+ roll_ns←{
+     ⍺ ← (types.write_names 'ns' '')
+     (fn_names ns pre) ← ⍺
      ⍝ base case: (name scalar_type)
      ⍝ prefix name and then parse the unit
-     1=≡⍵:parse_unit⍤(⍺∘{⊂1↓⍺,'.',⊃⍵}@0)⍵
-     pr←⍺,'.',(⊃0⌷⍵)
-     pr∘∇¨↓⊃1⌷⍵
+     1=≡⍵: (ns fn_names)∘parse_unit⍤({⊂1↓pre,'.',⊃⍵}@0)⍵
+     pr←pre,'.',⊃⍵
+     (fn_names ns pr)∘∇¨↓1⊃⍵
  }
+
+ get_struct_fields ← {(⊂⍤⍋⍛⌷)∪⊃,/{¯1↓¨,\¯1↓1↓'.',⍨¨'.'∘(≠⊆⊢)1⊃⍵}¨⍵}
+
+
  step←unroll def
  step←∊roll_ns¨↓step
 
@@ -50,26 +59,48 @@
  write_fns←':'∘(≠⊆⊢)¨'∇'(≠⊆⊢)step
 
  ⍝ If structs don't exist, set so that ⎕VGET for fields works
- sfields←(⊂⍤⍋⍛⌷)∪⊃,/{¯1↓¨,\¯1↓1↓'.',⍨¨'.'∘(≠⊆⊢)1⊃⍵}¨write_fns
+ sfields←get_struct_fields write_fns
+ ⍝sfields←(⊂⍤⍋⍛⌷)∪⊃,/{¯1↓¨,\¯1↓1↓'.',⍨¨'.'∘(≠⊆⊢)1⊃⍵}¨write_fns
  sfields←{'ns.',⍵,' ← ns.⎕VGET ⊂(,''',⍵,''') ()'}¨sfields
-
 
  ⍝ whitespaces get printed without _ ←
  ⍝ shy returns? just don't know where
  write_fns←{'_ ← ##.ffiw.ex.',(⊃⍵),' ns.⎕VGET ⊂(,''',(3↓1⊃⍵),''') 0'}¨write_fns
 
+ get_read_fns ← {
+     ⍺ ← types.read_names
+     0≡⍵: ⊂'r←0'
+
+     ⍝ Everything beyond this is a struct
+     ⍝ (Ignoring ptr, TODO)
+     ⍵<≢⍺: ⊂'r← ⊃', ns, '⍬',⍨⊃⍺[⍵-2]
+
+     idx ← ⍵⍳⍨(0⌷⍉types.type_table)
+     out ←⊂ 'r←()'
+     step ← ∊(⍺ 'r' '')∘roll_ns¨↓unroll idx⊃1⌷⍉types.type_table
+     read_fns ← ':'∘(≠⊆⊢)¨'∇'(≠⊆⊢)step
+     sfields←get_struct_fields read_fns
+
+     out,← {'r.', ⍵, ' ← ()'}¨ sfields
+     out,← {(1⊃⍵), ' ← ⊃', ns, (⊃⍵), '⍬'}¨read_fns
+     out
+ }
+ read_fns ← get_read_fns ret
+
  ⍝ Old non-struct one for reference
  ⍝write_fns←types.write_names∘build_fn¨ti
  ⍝write_fns←('_←',ns)∘,¨write_fns,¨' ns⎕VGET ⊂(,'''∘,¨{⍵,''') 0'}¨names
 
- ⍝ Need to handle structs with return
- read_fn←'r←',∊types.read_names{⍵=0:'0' ⋄ '⊃',ns,'⍬',⍨⊃⍺[⍵-1]}ret
+ ⍝ Non-struct return code
+ ⍝read_fns ← ⊂get_read_fns ret
+ ⍝⎕ ← read_fns
+ ⍝read_fn←'r←',∊types.read_names{⍵=0:'0' ⋄ '⊃',ns,'⍬',⍨⊃⍺[⍵-1]}ret
  compose←⍬
- compose←compose,⊂(name{⍵=types.void:'∇',⍺,' ns;b;r' ⋄ '∇r←',⍺,' ns;b'}ret)
+ compose←compose,⊂(name{⍵≡types.void:'∇',⍺,' ns;b;r' ⋄ '∇r←',⍺,' ns;b'}ret)
  compose←compose,sfields
  compose←compose,⊂'b←',ns,'FFIW_SetTarget ⊂''',name,''''
  compose←compose,write_fns
  compose←compose,⊂'_←',ns,'FFIW_Call⍬'
- compose←compose,⊂read_fn
+ compose←compose,read_fns
  compose←compose,'∇'
  r←compose

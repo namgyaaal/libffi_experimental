@@ -3,10 +3,17 @@
 ⎕SE.Link.Create 'ffiw' './ffiw'
 ⎕IO ← 0
 
+struct_a ← ffiw.Build_Struct [
+    'a' ffiw.types.u32
+    'b' ffiw.types.u16
+    'c' ffiw.types.u32
+    'd' ffiw.types.u16
+]
 inner ← ffiw.Build_Struct ['a' ffiw.types.u32 ⋄ 'b' ffiw.types.u32]
 outer ← ffiw.Build_Struct ['a' inner ⋄ 'b' inner]
 
 ⎕FX ffiw.Build_Function 'fn_a' ['a' ffiw.types.u32⋄] ffiw.types.u32
+⎕FX ffiw.Build_Function 'fn_b' ['s' struct_a⋄] struct_a
 ⎕FX ffiw.Build_Function 'fn_add' ['a' ffiw.types.u32 ⋄ 'b' ffiw.types.u32] ffiw.types.u32
 ⎕FX ffiw.Build_Function 'fn_struct' ['s' inner⋄] ffiw.types.u32
 ⎕FX ffiw.Build_Function 'fn_c' ['s' outer⋄] ffiw.types.u32
@@ -18,4 +25,7 @@ outer ← ffiw.Build_Struct ['a' inner ⋄ 'b' inner]
 ⎕ ← 'fn_struct', fn_struct(s: ⎕NS⍬)
 ⎕ ← 'fn_c', fn_c ⎕NS⍬
 ⎕ ← 'fn_c', fn_c (s: (a: (a: 1) ⋄ b: (b: 2)))
+
+res ← fn_b (s: (a: 1 ⋄ b: 2 ⋄ c: 3 ⋄ d: 4))
+⎕ ← 'fn_b struct return: ', ⍕res.a res.b res.c res.d
 
