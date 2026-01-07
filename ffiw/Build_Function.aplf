@@ -50,12 +50,13 @@
  write_fns←':'∘(≠⊆⊢)¨'∇'(≠⊆⊢)step
 
  ⍝ If structs don't exist, set so that ⎕VGET for fields works
- sfields ← (⊂⍤⍋⍛⌷) ∪⊃,/{ ¯1↓¨,\ ¯1↓1↓'.'∘(≠⊂⊢) 1∘⊃⍵}¨write_fns
- sfields ← {'ns.', ⍵, ' ← ns.⎕VGET ⊂(,''',⍵,''') ''⎕NS⍬'''}¨sfields
+ sfields←(⊂⍤⍋⍛⌷)∪⊃,/{¯1↓¨,\¯1↓1↓'.',⍨¨'.'∘(≠⊆⊢)1⊃⍵}¨write_fns
+ sfields←{'ns.',⍵,' ← ns.⎕VGET ⊂(,''',⍵,''') ()'}¨sfields
+
 
  ⍝ whitespaces get printed without _ ←
  ⍝ shy returns? just don't know where
- write_fns←{'_ ← ##.ffiw.ex.',(⊃⍵),' ⎕VGET ⊂''',(1⊃⍵), ''' 0'}¨write_fns
+ write_fns←{'_ ← ##.ffiw.ex.',(⊃⍵),' ns.⎕VGET ⊂(,''',(3↓1⊃⍵),''') 0'}¨write_fns
 
  ⍝ Old non-struct one for reference
  ⍝write_fns←types.write_names∘build_fn¨ti

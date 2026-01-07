@@ -4,13 +4,18 @@
 ⎕IO ← 0
 
 inner ← ffiw.Build_Struct ['a' ffiw.types.u32 ⋄ 'b' ffiw.types.u32]
+outer ← ffiw.Build_Struct ['a' inner ⋄ 'b' inner]
 
 ⎕FX ffiw.Build_Function 'fn_a' ['a' ffiw.types.u32⋄] ffiw.types.u32
 ⎕FX ffiw.Build_Function 'fn_add' ['a' ffiw.types.u32 ⋄ 'b' ffiw.types.u32] ffiw.types.u32
 ⎕FX ffiw.Build_Function 'fn_struct' ['s' inner⋄] ffiw.types.u32
+⎕FX ffiw.Build_Function 'fn_c' ['s' outer⋄] ffiw.types.u32
 
 ⎕ ← 'fn_a:', fn_a (a: 10)
 ⎕ ← 'fn_add:', fn_add(a:5 ⋄ b: 10)
 ⎕ ← 'fn_struct', fn_struct(s: (a: 1 ⋄ b: 2))
 ⎕ ← 'fn_struct', fn_struct(s: (a: 10))
 ⎕ ← 'fn_struct', fn_struct(s: ⎕NS⍬)
+⎕ ← 'fn_c', fn_c ⎕NS⍬
+⎕ ← 'fn_c', fn_c (s: (a: (a: 1) ⋄ b: (b: 2)))
+

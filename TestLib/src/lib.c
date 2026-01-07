@@ -42,6 +42,6 @@ Struct_A fn_b(Struct_A a) {
     return out;
 }
 
-void fn_c(Outer a, Outer b) {}
+uint32_t fn_c(Outer a) { return a.a.a + a.a.b + a.b.a + a.b.b; }
 
 void fn_d(Big_Outer d) { printf("fn_d test call\n"); }
