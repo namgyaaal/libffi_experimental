@@ -12,3 +12,5 @@ inner ← ffiw.Build_Struct ['a' ffiw.types.u32 ⋄ 'b' ffiw.types.u32]
 ⎕ ← 'fn_a:', fn_a (a: 10)
 ⎕ ← 'fn_add:', fn_add(a:5 ⋄ b: 10)
 ⎕ ← 'fn_struct', fn_struct(s: (a: 1 ⋄ b: 2))
+⎕ ← 'fn_struct', fn_struct(s: (a: 10))
+⎕ ← 'fn_struct', fn_struct(s: ⎕NS⍬)
