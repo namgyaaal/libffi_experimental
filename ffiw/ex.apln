@@ -1,6 +1,14 @@
 :Namespace ex
     ⎕IO ← 0
-    lib ← './target/release/libeasy_na.dylib'
+    CatchError ← {0≢≢⍵: ⍵
+      ⎕←'Couldn''t find file ./target/release/libeasy_na'
+      ⎕SIGNAL 22
+      ⊂'NO_LIBRARY_FOUND' ⍝ The interpreter in dyalogscript doesn't stop. Ideally it sould stop.
+    }
+    lib ← ⊃ CatchError ⎕NExists¨⍛/ (
+      './target/release/libeasy_na.dylib'
+      './target/release/libeasy_na.so'
+    )
 
     raw_defs ← [
     ''   'FFIW_Init'

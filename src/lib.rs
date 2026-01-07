@@ -92,7 +92,9 @@ unsafe impl Sync for Target {}
 // Need to make function to load library in the future that APL calls.
 static LIB: LazyLock<Mutex<Library>> = LazyLock::new(|| {
     Mutex::new(unsafe {
-        Library::new("libs/libTESTLIB.dylib").expect("Couldn't find libTESTLIB.dylib")
+        Library::new("libs/libTESTLIB.dylib")
+        .or_else(|_| Library::new("libs/libTESTLIB.so"))
+        .expect("Couldn't find file libs/libTESTLIB")
     })
 });
 
